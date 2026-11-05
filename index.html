@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Should a lender keep a customer who wants to repay early, or let them go? A simple calculator for banks and instalment lenders.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Keep or Let Go: early repayment calculator">
+<meta property="og:description" content="Should a lender keep a customer who wants to repay early, or let them go? Compare the value of keeping with the value of letting go.">
+<meta property="og:image" content="https://usmanov3r-cell.github.io/keep-or-let-go/preview.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="627">
+<meta property="og:url" content="https://usmanov3r-cell.github.io/keep-or-let-go/">
+<meta name="twitter:card" content="summary_large_image">
+<title>Keep or Let Go</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400..700&family=Libre+Baskerville:wght@400;700&display=swap">
+<style>
+/* A working tool: pick a case, move a few sliders, read the verdict and why. */
+:root {
+  --bg: #F6F4EF;
+  --panel: #FFFFFF;
+  --ink: #14213D;
+  --muted: #586276;
+  --line: #DCE0E7;
+  --accent: #B4531A;
+  --accent-soft: #F6E3D6;
+  --navy: #14213D;
+  --navy-ink: #F7F5F0;
+  --good: #2F6F4E;
+  --good-soft: #DDEFE4;
+  --bad: #A13A2E;
+  --bad-soft: #F6DEDA;
+  --bar-keep: #14213D;
+  --bar-go: #8A94A6;
+  --wf-plus: #3E5C8A;
+  --wf-minus: #C0705F;
+  --font-display: 'Libre Baskerville', Georgia, serif;
+  --font-body: 'DM Sans', Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0F1729; --panel: #172238; --ink: #EEF1F6; --muted: #A9B4C8; --line: #2A3753;
+    --accent: #F2A65A; --accent-soft: #3A2A1C; --navy: #22325A; --navy-ink: #F7F5F0;
+    --good: #7FCB9E; --good-soft: #1C3328; --bad: #F09A8C; --bad-soft: #3A2220;
+    --bar-keep: #F2A65A; --bar-go: #6E7A92; --wf-plus: #7FA3D9; --wf-minus: #E08E7C; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0F1729; --panel: #172238; --ink: #EEF1F6; --muted: #A9B4C8; --line: #2A3753;
+  --accent: #F2A65A; --accent-soft: #3A2A1C; --navy: #22325A; --navy-ink: #F7F5F0;
+  --good: #7FCB9E; --good-soft: #1C3328; --bad: #F09A8C; --bad-soft: #3A2220;
+  --bar-keep: #F2A65A; --bar-go: #6E7A92; --wf-plus: #7FA3D9; --wf-minus: #E08E7C; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 16px; line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 48px;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 10px; max-width: 70ch; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin: 0; }
+h1 { font-family: var(--font-display); font-size: clamp(30px, 5vw, 44px); line-height: 1.12; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0; font-size: 17px; }
+
+/* Scenarios */
+.cases { display: flex; flex-direction: column; gap: 10px; }
+.cases-label { font-size: 14px; font-weight: 700; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: inherit; font-size: 14px; font-weight: 600; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); }
+.chip[aria-pressed="true"] { background: var(--navy); color: var(--navy-ink); border-color: var(--navy); }
+.chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.case-story { margin: 0; font-size: 15px; color: var(--muted); max-width: 80ch; min-height: 1.5em; }
+.case-story b { color: var(--ink); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.inputs { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.panel h2 { font-size: 15px; margin: 0; }
+.panel .sub-note { margin: -8px 0 0; font-size: 14px; color: var(--muted); }
+
+/* Slider fields */
+.sl { display: flex; flex-direction: column; gap: 4px; }
+.sl-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sl-label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); min-width: 0; }
+.sl-val { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); width: 132px; flex: none; }
+.sl-val:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.sl-val input { width: 100%; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; font-weight: 700; padding: 5px 8px; text-align: right; font-variant-numeric: tabular-nums; }
+.sl-val input:focus { outline: none; }
+.sl-val .unit { padding: 0 8px 0 0; color: var(--muted); font-size: 13px; white-space: nowrap; }
+input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; height: 24px; }
+
+/* Plain fields in "More assumptions" */
+.more { border: 1px solid var(--line); background: var(--panel); border-radius: 12px; padding: 14px 20px; }
+.more > summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+.more > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.more-body { display: flex; flex-direction: column; gap: 18px; margin-top: 14px; }
+.group-title { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 -6px; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; }
+@media (max-width: 480px) { .fields { grid-template-columns: minmax(0, 1fr); } }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field .lab { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.input-row { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); overflow: hidden; }
+.input-row:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.input-row input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--ink); font: inherit; font-size: 16px; padding: 9px 10px; font-variant-numeric: tabular-nums; }
+.input-row input:focus { outline: none; }
+.unit { padding: 0 10px; color: var(--muted); font-size: 14px; white-space: nowrap; }
+
+/* Info tips */
+.tip { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--line); background: var(--panel); color: var(--muted); font: 700 12px/1 var(--font-body); cursor: pointer; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.tip:hover, .tip[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+.tip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hint { margin: 2px 0 0; font-size: 13px; line-height: 1.45; color: var(--muted); background: var(--bg); border-left: 3px solid var(--accent); padding: 8px 10px; border-radius: 0 6px 6px 0; }
+.hint[hidden] { display: none; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { font: inherit; font-size: 14px; font-weight: 600; color: var(--accent); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--accent); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.copied { font-size: 14px; color: var(--good); }
+
+/* Results */
+.results { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (max-width: 860px) { .results { position: static; } }
+.verdict { background: var(--navy); color: var(--navy-ink); border-radius: 14px; padding: 22px 24px; display: flex; flex-direction: column; gap: 10px; }
+.verdict .label { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 700; color: #F2A65A; margin: 0; }
+.verdict .big { font-family: var(--font-display); font-size: clamp(26px, 4vw, 34px); line-height: 1.15; margin: 0; }
+.verdict .sub { margin: 0; color: #C9D6E8; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px 20px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card h2 { font-size: 15px; margin: 0; }
+.num { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
+dl { margin: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; font-size: 15px; }
+dt { color: var(--muted); }
+dd { margin: 0; font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
+.pill { display: inline-block; font-size: 13px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+.pill.good { background: var(--good-soft); color: var(--good); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.note { font-size: 14px; color: var(--muted); margin: 0; }
+
+/* Waterfall */
+.wf { display: flex; flex-direction: column; gap: 6px; }
+.wf-head { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 8px 0 0; }
+.wf-head:first-child { margin-top: 0; }
+.wf-row { display: grid; grid-template-columns: 128px minmax(0, 1fr) 64px; align-items: center; gap: 10px; font-size: 13px; }
+.wf-row .lbl { color: var(--muted); line-height: 1.25; }
+.wf-row.total .lbl { color: var(--ink); font-weight: 700; }
+.wf-track { position: relative; height: 16px; }
+.wf-track::before { content: ""; position: absolute; top: -3px; bottom: -3px; left: var(--zero, 0%); border-left: 1px dashed var(--line); }
+.wf-bar { position: absolute; top: 0; height: 100%; border-radius: 3px; transition: left 0.25s ease, width 0.25s ease; }
+.wf-row .num { font-size: 13px; }
+.wf-row .num.minus { color: var(--bad); }
+@media (max-width: 420px) { .wf-row { grid-template-columns: 104px minmax(0, 1fr) 58px; gap: 8px; } }
+
+/* Methodology and footer */
+details.method { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 20px; }
+details.method summary { cursor: pointer; font-weight: 700; }
+details.method summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+details.method ol { padding-left: 20px; margin: 12px 0 0; display: flex; flex-direction: column; gap: 6px; color: var(--muted); max-width: 75ch; }
+footer { color: var(--muted); font-size: 14px; display: flex; flex-direction: column; gap: 4px; }
+footer a { color: var(--accent); }
+
+/* Phone verdict bar */
+.mbar { display: none; }
+@media (max-width: 860px) {
+  .mbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: var(--navy); color: var(--navy-ink); padding: 12px max(16px, env(safe-area-inset-left, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)); border: 0; width: 100%;
+    font: inherit; text-align: left; cursor: pointer; box-shadow: 0 -4px 16px rgba(0,0,0,0.18); transition: transform 0.2s ease; }
+  .mbar.hide { transform: translateY(110%); }
+  .mbar .m-l { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: #F2A65A; display: block; }
+  .mbar .m-b { font-family: var(--font-display); font-size: 19px; display: block; }
+  .mbar .m-go { font-size: 13px; color: #C9D6E8; white-space: nowrap; }
+  body { padding-bottom: 96px; }
+}
+@media (prefers-reduced-motion: reduce) { .wf-bar, .mbar { transition: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Early repayment calculator</p>
+    <h1>Keep or let go?</h1>
+    <p class="lede">A customer asks to repay early. Compare what keeping them with an offer is worth against letting them go, and see the largest offer that still pays. A simplified contribution model to structure the decision, not a validated pricing engine.</p>
+  </header>
+
+  <section class="cases" aria-label="Example cases">
+    <p class="cases-label">Start from a case</p>
+    <div class="chips" id="chips"></div>
+    <p class="case-story" id="story" aria-live="polite"></p>
+  </section>
+
+  <div class="grid">
+    <form class="inputs" id="form" autocomplete="off">
+      <div class="panel">
+        <h2>The contract and the offer</h2>
+        <div id="main-sliders"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Who gets the offer</h2>
+        <p class="sub-note">Use a control group to find these numbers. Without one, every offer looks like a success.</p>
+        <div id="group-sliders"></div>
+      </div>
+
+      <details class="more" id="more">
+        <summary>More assumptions</summary>
+        <div class="more-body" id="more-body"></div>
+      </details>
+
+      <div class="actions">
+        <button type="button" class="btn" id="share">Copy link to this case</button>
+        <button type="button" class="btn" id="reset">Reset to example</button>
+        <span class="copied" id="copied" aria-live="polite"></span>
+      </div>
+    </form>
+
+    <aside class="results" id="results" aria-live="polite">
+      <div class="verdict" id="verdict">
+        <p class="label" id="v-label">Verdict</p>
+        <p class="big" id="v-big">–</p>
+        <p class="sub" id="v-sub">–</p>
+      </div>
+
+      <div class="card">
+        <h2>Why: NPV of one customer</h2>
+        <div class="wf" id="wf"></div>
+        <dl>
+          <dt>Break-even offer (the ceiling)</dt><dd id="d-breakeven">–</dd>
+          <dt>Largest rate cut that still pays</dt><dd id="d-maxcut">–</dd>
+        </dl>
+      </div>
+
+      <div class="card">
+        <h2>Across everyone you make the offer to</h2>
+        <dl>
+          <dt>Value per customer offered</dt><dd id="d-per">–</dd>
+          <dt>Per 1,000 customers offered</dt><dd id="d-1000">–</dd>
+        </dl>
+        <p><span class="pill" id="p-port">–</span></p>
+        <p class="note" id="n-port">–</p>
+        <p class="note">An offer can win for one real leaver and still lose across everyone you target. The break-even is per contract; this view decides whether the campaign pays.</p>
+      </div>
+
+      <div class="card">
+        <h2>P&amp;L view if the customer leaves</h2>
+        <p class="note" id="n-pnl">–</p>
+      </div>
+    </aside>
+  </div>
+
+  <details class="method">
+    <summary>How the calculation works</summary>
+    <ol>
+      <li>Keep: the balance runs down month by month at the customer rate (or the rate after the cut). Each month earns the rate minus your funding cost on the balance. Expected loss and any fee waiver are taken off, plus a credit decision cost when the offer is a refinancing or top-up. A rate or fee change is an amendment and usually needs no new credit decision (check local rules).</li>
+      <li>Let go: the repaid balance is lent out again after the delay you set and earns the risk-adjusted margin on new loans, running down over the rest of the term. The unused part of upfront fees is refunded, shown here pro rata to the remaining term (the exact method varies by market). Compensation is what you enter, limited to the legal cap (1% of the balance if more than 12 months remain, 0.5% otherwise) and never more than the interest still to come.</li>
+      <li>Letting go assumes the repaid cash really is lent out again at the margin you enter, and that this new lending would not have happened anyway. If you are limited by demand or by credit appetite rather than by funding, the value of letting go is lower: closer to 0 margin.</li>
+      <li>Rules: since the Lexitor ruling (2019) early repayment reduces all costs, upfront fees included. Compensation has been capped since 2008 (Directive 2008/48/EC, Art. 16), fixed rate only, and national rules add conditions on when it applies, for example in Latvia and Lithuania. CCD II (Directive (EU) 2023/2225) codifies this for new contracts from 20 November 2026; existing contracts generally stay under the old rules.</li>
+      <li>Both sides are net present values (NPV): every monthly amount is discounted to today at your discount rate. The balance itself comes back in both cases, so only what differs is counted: margin, loss, fees, compensation and the offer. When market rates move, the margin on new loans and your funding cost move too: rerun the decision.</li>
+      <li>Break-even offer: the value of keeping before any offer, minus the value of letting go. Any offer costing more than this loses money. It is a ceiling: the best offer is usually lower, the one that keeps the most expected value.</li>
+      <li>Across customers: real leavers who accept add the gap between keeping and letting go. Customers who would have stayed anyway take the offer too, so their share costs the full offer.</li>
+      <li>The commission write-off is shown only in the P&amp;L view: in cash terms it is already spent.</li>
+    </ol>
+  </details>
+
+  <footer>
+    <span>One possible approach, kept simple on purpose. A full solution runs a decision engine across the whole lifecycle, not only at the payoff request: it makes the better-economics offer before the customer starts looking elsewhere. Portfolio modelling, segment models, live pricing and channel design complete it.</span>
+    <span>Example values are illustrative, not data from any lender. Not financial or legal advice.</span>
+    <span>R · Contract lifecycle and retention · v1.1, November 2026 · <a href="Early_Repayment_Signal_or_Event.pdf">Read the framework (PDF)</a> · <a href="https://github.com/usmanov3r-cell/keep-or-let-go">Source</a></span>
+  </footer>
+</div>
+
+<button type="button" class="mbar" id="mbar" aria-label="Show the full result">
+  <span><span class="m-l" id="m-l">Verdict</span><span class="m-b" id="m-b">–</span></span>
+  <span class="m-go">See why ↓</span>
+</button>
+
+<script>
+(function () {
+  // ---- Inputs: one definition drives sliders, plain fields, scenarios and the share link.
+  var F = {
+    bal:      { label: 'Outstanding balance', unit: '€', min: 500, max: 50000, step: 500, def: 8000, where: 'main' },
+    months:   { label: 'Remaining term', unit: 'months', min: 1, max: 96, step: 1, def: 36, where: 'main' },
+    rate:     { label: 'Customer interest rate', unit: '% a year', min: 0, max: 30, step: 0.5, def: 16, where: 'main' },
+    funding:  { label: 'Your funding cost', unit: '% a year', min: 0, max: 12, step: 0.25, def: 5, where: 'main' },
+    loss:     { label: 'Expected loss on the balance', unit: '% of balance', min: 0, max: 25, step: 0.5, def: 4, where: 'main',
+                tip: 'The share of the balance you expect to lose over the rest of the term, in money already discounted. Keeping a customer keeps this risk; letting go takes it off your books.' },
+    cut:      { label: 'Offer: rate cut', unit: 'points', min: 0, max: 10, step: 0.25, def: 1.5, where: 'main',
+                tip: 'A rate or fee cut on the current contract is usually a simple amendment with no new credit decision (check local rules). The best offer is often smaller than the break-even.' },
+    stay:     { label: 'Would have stayed anyway', unit: '%', min: 0, max: 100, step: 1, def: 30, where: 'group',
+                tip: 'Of everyone who gets the offer, the share who would have stayed without it. They take the offer too, so for them it is pure cost. Only a control group shows this number.' },
+    accept:   { label: 'Real leavers who accept', unit: '%', min: 0, max: 100, step: 1, def: 40, where: 'group',
+                tip: 'Of the customers who really would have left, the share the offer keeps.' },
+    waiver:   { label: 'One-off fee waiver', unit: '€', min: 0, step: 5, def: 0, where: 'more', group: 'The offer' },
+    decision: { label: 'Credit decision cost', unit: '€', min: 0, step: 1, def: 0, where: 'more', group: 'The offer',
+                tip: 'Only for a refinancing or a top-up, which needs a new credit decision. Refinance performing customers only: refinancing as debt relief is usually forbearance, with its own rules.' },
+    reinvest: { label: 'Risk-adjusted margin on new loans', unit: '% a year', min: 0, step: 0.1, def: 6, where: 'more', group: 'Letting go',
+                tip: 'What the repaid cash earns if you lend it out again, agreed with Finance: after losses, acquisition, servicing and capital. If you could not lend it out again, or the new lending would happen anyway, set it to 0.' },
+    delay:    { label: 'Time to lend the cash again', unit: 'months', min: 0, max: 24, step: 1, def: 3, where: 'more', group: 'Letting go' },
+    upfront:  { label: 'Upfront fees charged at signing', unit: '€', min: 0, step: 10, def: 200, where: 'more', group: 'Letting go',
+                tip: 'Since the Lexitor ruling (2019), early repayment reduces all costs, upfront fees included. Here the refund is fee × remaining term ÷ original term; the exact method varies by market.' },
+    orig:     { label: 'Original term', unit: 'months', min: 1, max: 120, step: 1, def: 60, where: 'more', group: 'Letting go' },
+    comprate: { label: 'Compensation you actually charge', unit: '% repaid', min: 0, max: 1, step: 0.1, def: 1, where: 'more', group: 'Letting go',
+                tip: 'Capped since 2008 at 1% of the amount repaid (0.5% in the last year), fixed rate only, and national rules add conditions on when it applies (for example in Latvia and Lithuania). Enter 0 for a variable rate or if it does not apply. The calculator never goes above the cap or the interest still to come.' },
+    commission: { label: 'Unearned commission written off', unit: '€ P&L', min: 0, step: 10, def: 300, where: 'more', group: 'Letting go',
+                tip: 'Dealer or platform commission not yet amortised. It is written off on payoff: shown only in the P&L view, because in cash terms it is already spent.' },
+    disc:     { label: 'Discount rate', unit: '% a year', min: 0, step: 0.1, def: 8, where: 'more', group: 'Money over time',
+                tip: 'Used to bring future amounts back to today. Your cost of capital or hurdle rate.' }
+  };
+  var ids = Object.keys(F);
+
+  var CASES = [
+    { key: 'example', name: 'Example', set: {},
+      story: '<b>A typical instalment loan.</b> A modest rate cut keeps a profitable customer, and still pays across the group.' },
+    { key: 'shopper', name: 'Rate shopper', set: { bal: 6000, months: 48, rate: 18, funding: 5, loss: 3, cut: 3, upfront: 150, orig: 60, commission: 0, stay: 20, accept: 50 },
+      story: '<b>A good payer found a cheaper rate.</b> High margin and plenty of term left: a bigger rate cut still pays.' },
+    { key: 'car', name: 'Car loan + commission', set: { bal: 15000, months: 48, rate: 8, funding: 5, loss: 1, cut: 1, reinvest: 4, upfront: 250, orig: 72, commission: 600 },
+      story: '<b>Thin margin, big write-off.</b> In cash terms letting go wins, but the P&amp;L takes the commission write-off in the month the customer leaves.' },
+    { key: 'risky', name: 'Risky, low margin', set: { bal: 4000, months: 24, rate: 14, funding: 5, loss: 12, cut: 2, upfront: 100, orig: 36, commission: 0 },
+      story: '<b>Let go: the risk leaves too.</b> Expected loss eats the margin. Any offer only buys more risk.' },
+    { key: 'last', name: 'Last months', set: { bal: 1500, months: 9, rate: 16, funding: 5, loss: 2, cut: 2, upfront: 200, orig: 48, comprate: 0.5, commission: 0 },
+      story: '<b>Little left to win either way.</b> Not worth a campaign: end the contract, keep the relationship.' },
+    { key: 'blanket', name: 'Blanket offer', set: { stay: 70 },
+      story: '<b>Same customer, wrong targeting.</b> Keeping one real leaver still wins, but 70% would have stayed anyway, so the campaign loses money.' }
+  ];
+
+  // ---- Build the form
+  function tipHtml(id) {
+    return F[id].tip ? '<button type="button" class="tip" aria-expanded="false" aria-controls="h-' + id + '" aria-label="About: ' + F[id].label + '">i</button>' : '';
+  }
+  function hintHtml(id) {
+    return F[id].tip ? '<p class="hint" id="h-' + id + '" hidden>' + F[id].tip + '</p>' : '';
+  }
+  function sliderHtml(id) {
+    var f = F[id];
+    return '<div class="sl">' +
+      '<div class="sl-top"><span class="sl-label"><label for="' + id + '">' + f.label + '</label>' + tipHtml(id) + '</span>' +
+      '<span class="sl-val"><input id="' + id + '" type="number" inputmode="decimal" min="' + f.min + '"' + (f.max != null ? ' max="' + f.max + '"' : '') + ' step="' + f.step + '" value="' + f.def + '"><span class="unit">' + f.unit + '</span></span></div>' +
+      '<input type="range" id="' + id + '-r" aria-label="' + f.label + '" min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" value="' + f.def + '">' +
+      hintHtml(id) + '</div>';
+  }
+  function fieldHtml(id) {
+    var f = F[id];
+    return '<div class="field"><span class="lab"><label for="' + id + '">' + f.label + '</label>' + tipHtml(id) + '</span>' +
+      '<div class="input-row"><input id="' + id + '" type="number" inputmode="decimal" min="' + f.min + '"' + (f.max != null ? ' max="' + f.max + '"' : '') + ' step="' + f.step + '" value="' + f.def + '"><span class="unit">' + f.unit.replace('&', '&amp;') + '</span></div>' +
+      hintHtml(id) + '</div>';
+  }
+  var main = '', grp = '', groups = {}, order = [];
+  ids.forEach(function (id) {
+    var f = F[id];
+    if (f.where === 'main') main += sliderHtml(id);
+    else if (f.where === 'group') grp += sliderHtml(id);
+    else { if (!groups[f.group]) { groups[f.group] = ''; order.push(f.group); } groups[f.group] += fieldHtml(id); }
+  });
+  document.getElementById('main-sliders').innerHTML = main;
+  document.getElementById('main-sliders').style.cssText = 'display:flex;flex-direction:column;gap:16px';
+  document.getElementById('group-sliders').innerHTML = grp;
+  document.getElementById('group-sliders').style.cssText = 'display:flex;flex-direction:column;gap:16px';
+  document.getElementById('more-body').innerHTML = order.map(function (g) {
+    return '<div><p class="group-title">' + g + '</p></div><div class="fields">' + groups[g] + '</div>';
+  }).join('');
+  document.getElementById('more').querySelector('summary').textContent = 'More assumptions (' + order.reduce(function (n, g) { return n + (groups[g].match(/class="field"/g) || []).length; }, 0) + ')';
+
+  // Tips
+  Array.prototype.forEach.call(document.querySelectorAll('.tip'), function (b) {
+    b.addEventListener('click', function () {
+      var h = document.getElementById(b.getAttribute('aria-controls'));
+      var open = b.getAttribute('aria-expanded') === 'true';
+      b.setAttribute('aria-expanded', open ? 'false' : 'true');
+      h.hidden = open;
+    });
+  });
+
+  // Slider <-> number sync
+  ids.forEach(function (id) {
+    var r = document.getElementById(id + '-r'), n = document.getElementById(id);
+    if (!r) return;
+    r.addEventListener('input', function () { n.value = r.value; });
+    n.addEventListener('input', function () { if (n.value !== '') r.value = n.value; });
+  });
+
+  // ---- Model (unchanged from v1.0)
+  var eur = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+  function money(x) { var v = Math.round(x); return eur.format(v === 0 ? 0 : v); }
+  function val(id) { var v = parseFloat(document.getElementById(id).value); return isFinite(v) ? v : 0; }
+
+  function pvMargin(B, n, r, spread, d, start) {
+    if (B <= 0 || n <= 0) return 0;
+    var i = r / 12, md = Math.pow(1 + d, 1 / 12);
+    var pay = i === 0 ? B / n : B * i / (1 - Math.pow(1 + i, -n));
+    var bal = B, pv = 0;
+    for (var t = 0; t < n; t++) {
+      pv += bal * spread / 12 / Math.pow(md, start + t + 1);
+      bal = bal * (1 + i) - pay;
+      if (bal < 0) bal = 0;
+    }
+    return pv;
+  }
+
+  function compute(p) {
+    var r = p.rate / 100, f = p.funding / 100, d = p.disc / 100;
+    var cut = Math.min(p.cut / 100, r);
+    var lossAmt = p.bal * p.loss / 100;
+    var marginNoOffer = pvMargin(p.bal, p.months, r, r - f, d, 0);
+    var keepBefore = marginNoOffer - lossAmt;
+    var marginWithCut = pvMargin(p.bal, p.months, r - cut, r - cut - f, d, 0);
+    var offerCost = (marginNoOffer - marginWithCut) + p.waiver;
+    var keep = marginWithCut - lossAmt - p.decision - p.waiver;
+    var goMonths = Math.max(p.months - p.delay, 0);
+    var newMargin = pvMargin(p.bal, goMonths, r, p.reinvest / 100, d, p.delay);
+    var refundAmt = p.orig > 0 ? p.upfront * Math.min(p.months / p.orig, 1) : 0;
+    var comp = 0;
+    if (p.comprate > 0 && p.months > 0) {
+      var ri = r / 12;
+      var rpay = ri === 0 ? p.bal / p.months : p.bal * ri / (1 - Math.pow(1 + ri, -p.months));
+      var remInt = Math.max(rpay * p.months - p.bal, 0);
+      var capPct = p.months > 12 ? 1 : 0.5;
+      comp = Math.min(Math.min(p.comprate, capPct) / 100 * p.bal, remInt);
+    }
+    var letGo = newMargin - refundAmt + comp;
+    var breakEven = keepBefore - p.decision - letGo;
+    var maxCut = null;
+    if (breakEven > 0) {
+      var lo = 0, hi = r;
+      if ((marginNoOffer - pvMargin(p.bal, p.months, 0, -f, d, 0)) <= breakEven) { maxCut = r; }
+      else {
+        for (var k = 0; k < 50; k++) {
+          var mid = (lo + hi) / 2;
+          var c = marginNoOffer - pvMargin(p.bal, p.months, r - mid, r - mid - f, d, 0);
+          if (c > breakEven) hi = mid; else lo = mid;
+        }
+        maxCut = lo;
+      }
+    }
+    var s = p.stay / 100, a = p.accept / 100;
+    var perCustomer = (1 - s) * a * (keep - letGo) - s * offerCost;
+    return { marginNoOffer: marginNoOffer, lossAmt: lossAmt, newMargin: newMargin, refundAmt: refundAmt, comp: comp,
+      keepBefore: keepBefore, keep: keep, letGo: letGo, offerCost: offerCost, breakEven: breakEven, maxCut: maxCut, perCustomer: perCustomer };
+  }
+
+  // ---- Waterfall: each step floats from the running total
+  function waterfall(o, p) {
+    var keepSteps = [
+      { l: 'Margin earned', v: o.marginNoOffer },
+      { l: 'Expected loss', v: -o.lossAmt },
+      { l: 'Cost of the offer', v: -o.offerCost },
+      { l: 'Credit decision', v: -p.decision },
+      { l: 'NPV of keeping', total: true }
+    ];
+    var goSteps = [
+      { l: 'Margin on new loans', v: o.newMargin },
+      { l: 'Upfront fee refund', v: -o.refundAmt },
+      { l: 'Compensation', v: o.comp },
+      { l: 'NPV of letting go', total: true }
+    ];
+    function walk(steps) {
+      var run = 0, out = [];
+      steps.forEach(function (s, i) {
+        if (s.total) { out.push({ l: s.l, a: 0, b: run, v: run, total: true }); return; }
+        if (Math.abs(s.v) < 0.5 && i > 0) return;
+        out.push({ l: s.l, a: run, b: run + s.v, v: s.v });
+        run += s.v;
+      });
+      return out;
+    }
+    var k = walk(keepSteps), g = walk(goSteps);
+    var all = k.concat(g), lo = 0, hi = 0;
+    all.forEach(function (r) { lo = Math.min(lo, r.a, r.b); hi = Math.max(hi, r.a, r.b); });
+    var span = (hi - lo) || 1;
+    function pct(x) { return (x - lo) / span * 100; }
+    var zero = pct(0);
+    function rows(list, totalColor) {
+      return list.map(function (r) {
+        var left = Math.min(pct(r.a), pct(r.b)), width = Math.max(Math.abs(pct(r.b) - pct(r.a)), 0.6);
+        var color = r.total ? totalColor : (r.v >= 0 ? 'var(--wf-plus)' : 'var(--wf-minus)');
+        var sign = r.total ? '' : (r.v >= 0 ? '+' : '−');
+        var shown = r.total ? money(r.v) : sign + money(Math.abs(r.v)).replace('-', '');
+        return '<div class="wf-row' + (r.total ? ' total' : '') + '"><span class="lbl">' + r.l + '</span>' +
+          '<div class="wf-track" style="--zero:' + zero + '%"><div class="wf-bar" style="left:' + left + '%;width:' + width + '%;background:' + color + '"></div></div>' +
+          '<span class="num' + (!r.total && r.v < 0 ? ' minus' : '') + '">' + shown + '</span></div>';
+      }).join('');
+    }
+    document.getElementById('wf').innerHTML =
+      '<p class="wf-head">Keep the customer</p>' + rows(k, 'var(--bar-keep)') +
+      '<p class="wf-head">Let them go</p>' + rows(g, 'var(--bar-go)');
+  }
+
+  // ---- Render
+  function render() {
+    var p = {};
+    ids.forEach(function (id) { p[id] = val(id); });
+    var o = compute(p);
+    var gap = o.keep - o.letGo;
+    var label, big, sub;
+    if (gap >= 0) {
+      label = 'Keep the customer';
+      big = 'Keeping wins by ' + money(gap);
+      sub = 'This offer costs ' + money(o.offerCost) + '. You could offer up to ' + money(Math.max(o.breakEven, 0)) + ' and still come out ahead.';
+    } else if (o.breakEven > 0) {
+      label = 'Offer too generous';
+      big = 'Letting go wins by ' + money(-gap);
+      sub = 'Keeping is still worth it with a smaller offer: up to ' + money(o.breakEven) + '.';
+    } else {
+      label = 'Let go';
+      big = 'Letting go wins by ' + money(-gap);
+      sub = 'Even with no offer, the cash earns more lent out again. Thank the customer and invite them back.';
+    }
+    document.getElementById('v-label').textContent = label;
+    document.getElementById('v-big').textContent = big;
+    document.getElementById('v-sub').textContent = sub;
+    document.getElementById('m-l').textContent = label;
+    document.getElementById('m-b').textContent = big;
+
+    waterfall(o, p);
+    document.getElementById('d-breakeven').textContent = o.breakEven > 0 ? money(o.breakEven) : 'None: let go';
+    document.getElementById('d-maxcut').textContent = o.maxCut === null ? 'None' : (o.maxCut * 100).toFixed(1) + ' points';
+    document.getElementById('d-per').textContent = money(o.perCustomer);
+    document.getElementById('d-1000').textContent = money(o.perCustomer * 1000);
+    var pill = document.getElementById('p-port');
+    if (o.perCustomer >= 0) { pill.className = 'pill good'; pill.textContent = 'The offer pays across the group'; }
+    else { pill.className = 'pill bad'; pill.textContent = 'The offer loses money across the group'; }
+    document.getElementById('n-port').textContent = p.stay + '% would have stayed anyway, and each of them takes the ' + money(o.offerCost) + ' offer. Only ' + p.accept + '% of real leavers accept.';
+    var pnl = [];
+    if (p.commission > 0) pnl.push(money(p.commission) + ' of unearned commission is written off at payoff');
+    if (o.refundAmt > 0) pnl.push(money(o.refundAmt) + ' of upfront fees goes back to the customer');
+    if (o.comp > 0) pnl.push(money(o.comp) + ' of early repayment compensation comes in');
+    document.getElementById('n-pnl').textContent = pnl.length ? (pnl.join(', and ') + '. Management sees this in the period the customer leaves, even when the cash decision favours letting go.') : 'No write-off or refund entered.';
+    syncUrl();
+  }
+
+  // ---- Scenarios
+  var chips = document.getElementById('chips'), story = document.getElementById('story'), current = 'example';
+  chips.innerHTML = CASES.map(function (c) {
+    return '<button type="button" class="chip" data-key="' + c.key + '" aria-pressed="false">' + c.name + '</button>';
+  }).join('');
+  function setValues(vals) {
+    ids.forEach(function (id) {
+      var v = vals.hasOwnProperty(id) ? vals[id] : F[id].def;
+      document.getElementById(id).value = v;
+      var r = document.getElementById(id + '-r'); if (r) r.value = v;
+    });
+  }
+  function markCase(key) {
+    current = key;
+    Array.prototype.forEach.call(chips.children, function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-key') === key ? 'true' : 'false'); });
+    var c = CASES.filter(function (x) { return x.key === key; })[0];
+    story.innerHTML = c ? c.story : '<b>Your own case.</b> Change any number; the verdict updates as you type.';
+  }
+  function applyCase(key) {
+    var c = CASES.filter(function (x) { return x.key === key; })[0];
+    setValues(c.set); markCase(key); render();
+  }
+  chips.addEventListener('click', function (e) {
+    var b = e.target.closest('.chip'); if (b) applyCase(b.getAttribute('data-key'));
+  });
+
+  // ---- Share link: only values that differ from the defaults go in the address
+  var lastHash = '';
+  function syncUrl() {
+    var q = [];
+    if (current && current !== 'example' && current !== 'custom') q.push('case=' + current);
+    ids.forEach(function (id) { var v = val(id); if (v !== F[id].def) q.push(id + '=' + v); });
+    var h = q.length ? '#' + q.join('&') : '';
+    if (h === lastHash) return;
+    lastHash = h;
+    try { history.replaceState(null, '', h || location.pathname + location.search); } catch (e) {}
+  }
+  function readUrl() {
+    var h = (location.hash || '').replace(/^#/, '');
+    if (!h) return false;
+    var vals = {}, key = 'custom';
+    h.split('&').forEach(function (kv) {
+      var parts = kv.split('='), k = decodeURIComponent(parts[0] || ''), v = decodeURIComponent(parts[1] || '');
+      if (k === 'case') key = v;
+      else if (F[k] && isFinite(parseFloat(v))) vals[k] = parseFloat(v);
+    });
+    setValues(vals);
+    var c = CASES.filter(function (x) { return x.key === key; })[0];
+    // Treat it as that case only if the numbers still match it exactly
+    if (c) {
+      var same = ids.every(function (id) { var want = c.set.hasOwnProperty(id) ? c.set[id] : F[id].def; return (vals.hasOwnProperty(id) ? vals[id] : F[id].def) === want; });
+      markCase(same ? key : 'custom');
+    } else markCase('custom');
+    return true;
+  }
+
+  document.getElementById('form').addEventListener('input', function () { if (current !== 'custom') markCase('custom'); render(); });
+  document.getElementById('form').addEventListener('submit', function (e) { e.preventDefault(); });
+  document.getElementById('reset').addEventListener('click', function () { applyCase('example'); });
+  document.getElementById('share').addEventListener('click', function () {
+    syncUrl();
+    var url = location.href, msg = document.getElementById('copied');
+    function done(t) { msg.textContent = t; setTimeout(function () { msg.textContent = ''; }, 2500); }
+    try {
+      navigator.clipboard.writeText(url).then(function () { done('Link copied'); }, function () { done('Copy this address: ' + url); });
+    } catch (e) { done('Copy this address: ' + url); }
+  });
+
+  // ---- Phone verdict bar: hidden while the full verdict is on screen
+  var mbar = document.getElementById('mbar');
+  mbar.addEventListener('click', function () { document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' }); });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      es.forEach(function (e) { mbar.classList.toggle('hide', e.isIntersecting); });
+    }, { threshold: 0 }).observe(document.getElementById('results'));
+  }
+
+  if (!readUrl()) markCase('example');
+  render();
+})();
+</script>
+</body>
+</html>
